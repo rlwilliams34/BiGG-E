@@ -34,6 +34,8 @@ if __name__ == '__main__':
     set_device(cmd_args.gpu)
     if cmd_args.method == 'BiGG-MLP':
         cmd_args.bits_compress = 0 # disable bits compression for BiGG-MLP
+    if not cmd_args.has_edge_feats:
+        cmd_args.method = "None"
     setup_treelib(cmd_args)
     assert cmd_args.blksize < 0  # assume graph is not that large, otherwise model parallelism is needed    
     
@@ -244,7 +246,8 @@ if __name__ == '__main__':
             # === Loss Calculations ===
             true_loss = -ll / cur_num_nodes - ll_wt / cur_num_edges
             epoch_loss_top = (-ll / (num_nodes * num_steps)).item() + epoch_loss_top
-            epoch_loss_wt = (-ll_wt / (num_edges * num_steps)).item() + epoch_loss_wt
+            if cmd_args.has_edge_feats:
+                epoch_loss_wt = (-ll_wt / (num_edges * num_steps)).item() + epoch_loss_wt
             pbar.set_description('epoch %.2f, loss: %.4f' % (epoch + (idx + 1) / num_iter, true_loss))
         
         # == Update Epoch Avg. Losses + Summary ==
@@ -262,7 +265,7 @@ if __name__ == '__main__':
             checkpoint = {'epoch': epoch, 
                           'model': model.state_dict(), 
                           'optimizer_topo': optimizer_topo.state_dict(), 
-                          'optimizer_wt': optimizer_wt.state_dict(), 
+                          'optimizer_wt': (optimizer_wt.state_dict() if optimizer_wt is not None else None), 
                           'learning_rate_top': cmd_args.learning_rate_top,
                           'learning_rate_wt': cmd_args.learning_rate_wt}
             torch.save(checkpoint, os.path.join(cmd_args.save_dir, 'epoch-%d.ckpt' % cur))

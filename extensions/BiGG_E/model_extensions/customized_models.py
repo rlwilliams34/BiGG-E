@@ -80,6 +80,7 @@ class BiGGExtension(RecurTreeGenExtension):
             self.wt_scale = args.wt_scale
         
         else:
+            self.debug = args.debug
             self.method = 'None'
             self.sampling_method = 'None'
             self.g_type = args.g_type
